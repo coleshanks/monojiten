@@ -2,5 +2,10 @@
 name = "monojiten"
 version = "0.1.0"
 edition = "2024"
+description = "Monolingual Japanese dictionary CLI — look up ja-ja definitions from a Yomitan-format dictionary"
+license = "MIT"
+repository = "https://github.com/coleshanks/monojiten"
+keywords = ["japanese", "dictionary", "cli", "yomitan", "monolingual"]
+categories = ["command-line-utilities"]
 
 [dependencies]
