@@ -32,12 +32,14 @@ pub struct Term {
 // the Err(E) return case is wrapped in a Box<>. Box is a smart pointer. it is fixed size (just a pointer). but it points to the heap which is needed because a variety of errs could occur here. of varying sizes. so we point at the heap to accomodate
 // dyn is a keyword or qualifier. We could encounter a variety of errors. wrong format, no data, corrupt data, etc. We don't know which type it will be until runtime. dyn says i don't care which it is as long as it satisfies the Error trait from std. Figure it out at runtime and thats a valid return
 pub fn load_dict_index(path: &Path) -> Result<DictIndex, Box<dyn std::error::Error>> {
+    // let file = std::fs::File::open(path)?; is equivalent but we will be verbose for now
     let file = match std::fs::File::open(path) {
         Ok(f) => f,                     // on successful open. f is type struct File
         Err(e) => return Err(e.into()), // on unsuccessful open. we have error e, type struct Error from std::io. into method runs on e and converts it to our expected return error type. Box<dyn std::error::Error>
     };
 
-    let archive = match zip::ZipArchive::new(file) {
+    // by_name changes the "cursor" for where archive is which is why it needs to be mut. index and file do not they only read
+    let mut archive = match zip::ZipArchive::new(file) {
         Ok(a) => a, // on success. archive is a handle for the contents of the zip. we can now access json files etc
         Err(e) => return Err(e.into()), // here we convert to Box<dyn Error> like above. in this case from zip::result::ZipError instead of std::io::Error but into method handles it the same
     };
@@ -47,4 +49,12 @@ pub fn load_dict_index(path: &Path) -> Result<DictIndex, Box<dyn std::error::Err
         Ok(i) => i,
         Err(e) => return Err(e.into()),
     };
+
+    // deserialize index (json data) into dict_index (metadata struct)
+    let dict_index = match serde_json::from_reader(index) {
+        Ok(d) => d,
+        Err(e) => return Err(e.into()),
+    };
+
+    Ok(dict_index) // we return the metadata struct but wrapped in the Ok enum variant (if successful)
 }
