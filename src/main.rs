@@ -3,7 +3,7 @@ use std::path::Path;
 
 fn main() {
     let path = Path::new(
-        "/Users/coleshanks/Downloads/new_dic_shoui/[Monolingual] 明鏡国語辞典 第二版 Improved ver.zip",
+        "/Users/coleshanks/Documents/new_dic_shoui/[Monolingual] 明鏡国語辞典 第二版 Improved ver.zip",
     );
 
     let dict_index = match load_dict_index(path) {
