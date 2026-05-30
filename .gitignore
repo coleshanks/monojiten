@@ -1,4 +1,3 @@
 /target
-DESIGN.md
-roadmap.md
-dic_structures.md
+*.md
+!README.md
