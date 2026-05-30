@@ -1,4 +1,4 @@
-use monojiten::parser::{load_dict_index, open_archive};
+use monojiten::parser::{load_dict_index, load_terms, open_archive};
 use std::path::Path;
 
 fn main() {
@@ -17,4 +17,23 @@ fn main() {
     };
 
     println!("{}\n{}", dict_index.title, dict_index.format);
+
+    let terms = match load_terms(&mut archive) {
+        Ok(t) => t,
+        Err(e) => panic!("Couldn't load the terms\n{e}"),
+    };
+
+    println!("Let's read some stuff from term_bank_1.json!");
+
+    // println!(
+    //     "term: {}\n reading: {:?}\n score: {}\n definition: {:?}",
+    //     terms[9].term, terms[9].reading, terms[9].score, terms[9].definition,
+    // );
+
+    for i in terms {
+        println!(
+            "term: {}\n reading: {:?}\n score: {}\n definition: {:?}\n",
+            i.term, i.reading, i.score, i.definition
+        );
+    }
 }

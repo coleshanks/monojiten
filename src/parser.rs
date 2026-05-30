@@ -13,7 +13,7 @@ pub struct DictIndex {
 #[derive(Deserialize)] // same thing as above
 pub struct TermEntry {
     pub term: String,                  // 食べる
-    pub reading: String,               // たべる
+    pub reading: Option<String>,       // たべる
     pub score: i64, // 550. 64 to handle potentially big scores plus matches serde json integer convention
     pub definition: serde_json::Value, // raw json from term bank. needs to be extracted later
 }
@@ -47,4 +47,38 @@ pub fn load_dict_index(
     };
 
     Ok(dict_index)
+}
+
+pub fn load_terms(
+    archive: &mut ZipArchive<File>,
+) -> Result<Vec<TermEntry>, Box<dyn std::error::Error>> {
+    let terms = match archive.by_name("term_bank_1.json") {
+        Ok(t) => t,
+        Err(e) => return Err(e.into()),
+    };
+
+    let term_entry: Vec<(
+        String,
+        Option<String>,
+        Option<String>,
+        String,
+        i64,
+        serde_json::Value,
+        i64,
+        String,
+    )> = match serde_json::from_reader(terms) {
+        Ok(t) => t,
+        Err(e) => return Err(e.into()),
+    };
+
+    Ok(term_entry
+        .into_iter() //instead of for loop
+        .map(|t| TermEntry {
+            // closure so we dont need to write a seperate fn to handle TermEntry fields from the serde_json we can jsut do inline
+            term: t.0,
+            reading: t.1,
+            score: t.4,
+            definition: t.5,
+        })
+        .collect()) // make a vec of TermEntry's
 }
