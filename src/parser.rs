@@ -70,7 +70,7 @@ pub fn load_terms(
         Option<String>, // definition tags SKIP. Option<> because also can be empty i think? either way we discard it later so jsut leave as is
         String,         // rules SKIP
         i64,            //score KEEP
-        serde_json::Value, // definitions KEEP. the hard one. we process later
+        serde_json::Value, // definition KEEP. the hard one. we process later
         i64,            // sequence number SKIP
         String,         // term tags //SKIP
     )> = match serde_json::from_reader(terms) {
@@ -78,53 +78,64 @@ pub fn load_terms(
         Err(e) => return Err(e.into()),
     };
 
+    // return a Vec of TermEntry structs
     Ok(term_entry
-        .into_iter() //instead of for loop
+        .into_iter() // iterator to let us walk the vec tuple by tuple and use map below to match tuple fields to our struct
         .map(|t| TermEntry {
-            // closure so we dont need to write a seperate fn to handle TermEntry fields from the serde_json we can jsut do inline
-            term: t.0,
-            reading: t.1,
-            score: t.4,
-            definition: t.5,
+            // closure here can be though of as a fn. this fn takes a tuple from the iterator above. and returns a TermEntry struct after we map the fields we want. the closure lets us do this inline instead of making a seperate fn and calling it here
+            term: t.0,       // term: 食べる
+            reading: t.1,    // reading: たべる
+            score: t.4,      // score
+            definition: t.5, // definition
         })
-        .collect()) // make a vec of TermEntry's
+        .collect()) // the step above passes us a struct. collect pushes it into a new empty Vec. once all structs are pushed collect will return this Vec
 }
 
+// takes definition field from our struct, which is serde_json data and returns a plain String of the actual definition
+// dics have Types A, B, and C for how definitions are stored in the json array
 pub fn extract_definition(definition: &serde_json::Value) -> String {
-    // type A json: just definition string
-    // if it's a string assign to s
+    // Type A: just definition string. so TermEntry.definition[0] contains a string. and thats what we want thats the whole definition. so we simply return that string
     if let Some(s) = definition[0].as_str() {
         return String::from(s); // as_str returns &str so we convert to String
     }
 
-    // placeholder
-    String::new()
+    let string_pieces = walk_tree(definition);
+    string_pieces.concat()
 }
 
+// walks the json exhaustively and returns a vec of strings. our definition is somewhere in this vec
 pub fn walk_tree(node: &serde_json::Value) -> Vec<String> {
     match node {
-        serde_json::Value::String(_) => Vec::new(), // random nested strings we dont care. return empty vec
-        serde_json::Value::Array(arr) => {
-            let nested: Vec<Vec<String>> = arr.iter().map(|element| walk_tree(element)).collect();
-            let flattened: Vec<String> = nested.into_iter().flatten().collect();
-            flattened
+        // we encountered a plain String. this is like a leaf in the json array structure. we cant progress any further in this branch
+        serde_json::Value::String(s) => {
+            vec![s.clone()] // s is a refernce to the String we are matching on. s is &String. Our return type is Vec<String>. So we clone s to get ownership
         }
-        serde_json::Value::Object(obj) => {
-            let data = obj.get("data");
-            if let Some(d) = data {
-                let name = d.get("name");
-                if let Some(n) = name {
-                    if n.as_str() == Some("語釈") {
-                        if let Some(content) = obj.get("content") {
-                            if let Some(s) = content.as_str() {
-                                return vec![s.to_owned()];
-                            }
-                        }
-                    }
+        // we encountered an array. array is like a branch of the json and nested within it can be any of the six serde_json::Value enum variants: null, bool, number, string, array, object
+        serde_json::Value::Array(a) => {
+            let mut results = Vec::new(); // initialize a new empty vec
+            // for child in a { results.extend(walk_tree(child)) } does the same as the below for loop
+            for child in a {
+                let child_strings = walk_tree(child); //recursively call walk_tree on each child
+                for s in child_strings {
+                    results.push(s); // push the strings we find into results
                 }
             }
-            Vec::new()
+            results
         }
-        _ => Vec::new(),
+        // we encountered an object. objects are Map<String, Value> in the json. for example "tag": "span" which like tells yomitan how to render. span is from html. can also be nested like "content": { "tag": "img", ... } which is why we recurse on obj matches
+        serde_json::Value::Object(o) => {
+            if let Some(tag) = o.get("tag") {
+                // we want to throw out img specifically because it never leads to definitions. other tag value matches like "span" "div" "ruby" "a" the walker will traverse and look for strings. "img" often has no content or is img content which we dont want. so we isolate it. stop. and return an empty vec
+                if tag.as_str() == Some("img") {
+                    return vec![];
+                }
+            }
+            match o.get("content") {
+                Some(c) => walk_tree(c), // we've found a content key. this contains the definition we want. we follow it recursively down and extract the strings
+                None => vec![],
+            }
+        }
+        // to cover null bool and number enum variants that we dont care about
+        _ => vec![],
     }
 }

@@ -1,4 +1,4 @@
-use monojiten::parser::{load_dict_index, load_terms, open_archive};
+use monojiten::parser::{load_dict_index, load_terms, open_archive, extract_definition};
 use std::path::Path;
 
 fn main() {
@@ -32,8 +32,11 @@ fn main() {
 
     for i in terms {
         println!(
-            "term: {}\n reading: {:?}\n score: {}\n definition: {:?}\n",
-            i.term, i.reading, i.score, i.definition
+            "term: {}\n reading: {:?}\n score: {}\n definition: {}\n",
+            i.term,
+            i.reading,
+            i.score,
+            extract_definition(&i.definition)
         );
     }
 }
