@@ -1,3 +1,4 @@
 /target
+/dictionaries
 *.md
 !README.md
