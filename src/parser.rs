@@ -57,38 +57,49 @@ pub fn load_dict_index(
 pub fn load_terms(
     archive: &mut ZipArchive<File>,
 ) -> Result<Vec<TermEntry>, Box<dyn std::error::Error>> {
-    let terms = match archive.by_name("term_bank_1.json") {
-        Ok(t) => t, // terms pointer so we can access term_bank_1.json contents
-        Err(e) => return Err(e.into()),
-    };
+    let term_banks: Vec<String> = archive
+        .file_names()
+        .filter(|bank| bank.starts_with("term_bank_") && bank.ends_with(".json"))
+        .map(|bank| bank.to_string())
+        .collect();
 
-    // here term_entry is not an inst struct. its a vec of Tuples. each tuple has types
-    // explicitly declared and comes from the json. we dont use all these just the 4 we want for our struct
-    let term_entry: Vec<(
-        String,            // term: 食べる KEEP
-        Option<String>, // reading: たべる KEEP. Option<> because this field can be empty. Kana words for example wont have a reading field
-        Option<String>, // definition tags SKIP. Option<> because also can be empty i think? either way we discard it later so jsut leave as is
-        String,         // rules SKIP
-        i64,            //score KEEP
-        serde_json::Value, // definition KEEP. the hard one. we process later
-        i64,            // sequence number SKIP
-        String,         // term tags //SKIP
-    )> = match serde_json::from_reader(terms) {
-        Ok(t) => t, // deserialize the whole term bank. each term in the json is an array of 8 elements (above). so array element 0 of the array goes in the tuple as t.0. and all those seperate tuples corresponding to different terms fill the Vec. Vec[0] is a the first term which is housed as a tuple of 8 fields (above)
-        Err(e) => return Err(e.into()),
-    };
+    let mut all_banks: Vec<TermEntry> = Vec::new();
 
-    // return a Vec of TermEntry structs
-    Ok(term_entry
-        .into_iter() // iterator to let us walk the vec tuple by tuple and use map below to match tuple fields to our struct
-        .map(|t| TermEntry {
-            // closure here can be though of as a fn. this fn takes a tuple from the iterator above. and returns a TermEntry struct after we map the fields we want. the closure lets us do this inline instead of making a seperate fn and calling it here
-            term: t.0,       // term: 食べる
-            reading: t.1,    // reading: たべる
-            score: t.4,      // score
-            definition: t.5, // definition
-        })
-        .collect()) // the step above passes us a struct. collect pushes it into a new empty Vec. once all structs are pushed collect will return this Vec
+    for bank in term_banks {
+        let terms = match archive.by_name(&bank) {
+            Ok(t) => t, // terms pointer so we can access term_bank_1.json contents
+            Err(e) => return Err(e.into()),
+        };
+        // here term_entry is not an inst struct. its a vec of Tuples. each tuple has types
+        // explicitly declared and comes from the json. we dont use all these just the 4 we want for our struct
+        let term_entry: Vec<(
+            String,            // term: 食べる KEEP
+            Option<String>, // reading: たべる KEEP. Option<> because this field can be empty. Kana words for example wont have a reading field
+            Option<String>, // definition tags SKIP. Option<> because also can be empty i think? either way we discard it later so jsut leave as is
+            String,         // rules SKIP
+            i64,            //score KEEP
+            serde_json::Value, // definition KEEP. the hard one. we process later
+            i64,            // sequence number SKIP
+            String,         // term tags //SKIP
+        )> = match serde_json::from_reader(terms) {
+            Ok(t) => t, // deserialize the whole term bank. each term in the json is an array of 8 elements (above). so array element 0 of the array goes in the tuple as t.0. and all those seperate tuples corresponding to different terms fill the Vec. Vec[0] is a the first term which is housed as a tuple of 8 fields (above)
+            Err(e) => return Err(e.into()),
+        };
+
+        // return a Vec of TermEntry structs
+        let bank_terms: Vec<TermEntry> = term_entry
+            .into_iter() // iterator to let us walk the vec tuple by tuple and use map below to match tuple fields to our struct
+            .map(|t| TermEntry {
+                // closure here can be though of as a fn. this fn takes a tuple from the iterator above. and returns a TermEntry struct after we map the fields we want. the closure lets us do this inline instead of making a seperate fn and calling it here
+                term: t.0,       // term: 食べる
+                reading: t.1,    // reading: たべる
+                score: t.4,      // score
+                definition: t.5, // definition
+            })
+            .collect(); // the step above passes us a struct. collect pushes it into a new empty Vec. once all structs are pushed collect will return this Vec
+        all_banks.extend(bank_terms);
+    }
+    Ok(all_banks)
 }
 
 // takes definition field from our struct, which is serde_json data and returns a plain String of the actual definition

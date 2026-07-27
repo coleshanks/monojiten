@@ -3,7 +3,8 @@ use std::path::Path;
 
 fn main() {
     let path = Path::new(
-        "/Users/coleshanks/Documents/new_dic_shoui/[Monolingual] 明鏡国語辞典 第二版 Improved ver.zip",
+        // "/Users/coleshanks/Documents/Projects/cli/monojiten/dictionaries/[Monolingual] 明鏡国語辞典 第二版 Improved ver.zip",
+        "/Users/coleshanks/Documents/Projects/cli/monojiten/dictionaries/[Monolingual] 大辞林 第三版.zip",
     );
 
     let mut archive = match open_archive(path) {
