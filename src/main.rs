@@ -32,12 +32,20 @@ fn main() {
     //     terms[9].term, terms[9].reading, terms[9].score, terms[9].definition,
     // );
 
+    // for i in terms {
+    //     println!(
+    //         "term: {}\n reading: {:?}\n score: {}\n definition: {}\n",
+    //         i.term,
+    //         i.reading,
+    //         i.score,
+    //         extract_definition(&i.definition)
+    //     );
+    // }
+
     for i in terms {
         println!(
-            "term: {}\n reading: {:?}\n score: {}\n definition: {}\n",
+            "term: {}\n definition: {}\n",
             i.term,
-            i.reading,
-            i.score,
             extract_definition(&i.definition)
         );
     }

@@ -52,8 +52,7 @@ pub fn load_dict_index(
     Ok(dict_index)
 }
 
-// right now points at a specific term bank. to be updated later
-// returns a Vec of TermEntrys. Fields from the json into our struct is deserialized and nice. Except definition which is complicated and can be many layers nested/ That stays raw json serde and we process it later in fn extract_definition
+// returns a Vec of TermEntrys. Fields from the json into our struct is deserialized and nice. Except definition which is complicated and can be many layers nested. That stays raw json serde and we process it later in fn extract_definition
 pub fn load_terms(
     archive: &mut ZipArchive<File>,
 ) -> Result<Vec<TermEntry>, Box<dyn std::error::Error>> {
